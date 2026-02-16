@@ -60,3 +60,8 @@
 - *Tech Notes*:
   - **Logic**: Implemented a timestamp comparison in `BookingModal.handleSubmit` that checks the selected `start_time` against the current system time.
   - **UI**: Added a descriptive error message "You cannot book a slot in the past" in the modal's error container.
+9. [2026-02-16 23:30]: Visual Alignment Fix - Now Button Height
+- *Details*: Synchronized the height of the "Now" button with the time selector input field for perfect horizontal alignment.
+- *Tech Notes*:
+  - **Flexbox**: Applied `display: flex` to the input wrapper and set the input field to `height: 100%`.
+  - **Layout**: Removed explicit `height: auto` from `.now-btn` to allow it to naturally stretch and match the sibling container's height within the flex wrapper.

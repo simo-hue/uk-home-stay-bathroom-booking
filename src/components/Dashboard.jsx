@@ -525,9 +525,9 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
         .modal-content h2 { margin-bottom: 0; font-size: 1.5rem; }
         .modal-subtitle { color: var(--text-secondary); font-size: 0.875rem; }
         .close-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; }
-        .input-with-icon { position: relative; flex: 1; min-width: 0; }
+        .input-with-icon { position: relative; flex: 1; min-width: 0; display: flex; }
         .field-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; z-index: 1; }
-        .pl-10 { padding-left: 40px !important; }
+        .pl-10 { padding-left: 40px !important; width: 100%; height: 100%; }
         .chip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .duration-chip {
           padding: 12px 8px;
@@ -576,7 +576,6 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
         .now-btn { 
           flex-shrink: 0;
           white-space: nowrap;
-          height: auto; 
           padding: 0 16px; 
           font-size: 0.875rem;
           border-radius: 12px;
