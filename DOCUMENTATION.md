@@ -19,3 +19,17 @@
 - *Tech Notes*:
   - **Vite Config**: Set `base` to `/uk/` to support subdirectory hosting.
   - **CI/CD**: Added `.github/workflows/deploy.yml` for automated builds and deployments via GitHub Actions.
+## [2026-02-16 23:00]: Simplified Auth Flow
+- *Details*: Removed the Sign Up option to restrict access to existing users only.
+- *Files*: `src/components/Auth.jsx` modified.
+## [2026-02-16 23:04]: Removed Mock Mode
+- *Details*: Completely removed the Mock Supabase fallback. The app now requires real Supabase credentials to run.
+- *Files*: `src/lib/supabase.js` simplified.
+
+
+## [2026-02-16 23:05]: PWA Logo Enhancement
+- *Details*: Redesigned and updated PWA icons to fill the entire square frame, removing unused margins and improving aesthetic appeal.
+- *Tech Notes*:
+  - **Icons**: Generated high-resolution 512x512, 192x192, and 180x180 icons.
+  - **Favicon**: Added `favicon.png` and updated `index.html` to use it instead of the default Vite logo.
+  - **Glassmorphism**: Maintained the premium glassmorphic style for the central icon elements.

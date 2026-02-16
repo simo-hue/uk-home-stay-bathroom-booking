@@ -4,11 +4,8 @@ import { User, Lock, Loader2 } from 'lucide-react'
 
 export function Auth() {
     const [loading, setLoading] = useState(false)
-    const [isLogin, setIsLogin] = useState(true)
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('')
-    const [username, setUsername] = useState('')
-    const [displayName, setDisplayName] = useState('')
     const [error, setError] = useState(null)
 
     const handleAuth = async (e) => {
@@ -17,26 +14,11 @@ export function Auth() {
         setError(null)
 
         try {
-            if (isLogin) {
-                const { error } = await supabase.auth.signInWithPassword({
-                    email,
-                    password,
-                })
-                if (error) throw error
-            } else {
-                const { error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            username,
-                            display_name: displayName,
-                        },
-                    },
-                })
-                if (error) throw error
-                setError('Verification email sent! Please check your inbox.')
-            }
+            const { error } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            })
+            if (error) throw error
         } catch (error) {
             setError(error.message)
         } finally {
@@ -68,32 +50,6 @@ export function Auth() {
                         </div>
                     </div>
 
-                    {!isLogin && (
-                        <>
-                            <div className="input-group">
-                                <label className="input-label">Username</label>
-                                <input
-                                    type="text"
-                                    className="input-field"
-                                    placeholder="johndoe"
-                                    value={username}
-                                    onChange={(e) => setUsername(e.target.value)}
-                                    required
-                                />
-                            </div>
-                            <div className="input-group">
-                                <label className="input-label">Display Name</label>
-                                <input
-                                    type="text"
-                                    className="input-field"
-                                    placeholder="John"
-                                    value={displayName}
-                                    onChange={(e) => setDisplayName(e.target.value)}
-                                />
-                            </div>
-                        </>
-                    )}
-
                     <div className="input-group">
                         <label className="input-label">Password</label>
                         <div className="input-wrapper">
@@ -112,15 +68,7 @@ export function Auth() {
                     {error && <div className="auth-error">{error}</div>}
 
                     <button className="btn btn-primary w-full" disabled={loading}>
-                        {loading ? <Loader2 className="animate-spin" /> : (isLogin ? 'Login' : 'Sign Up')}
-                    </button>
-
-                    <button
-                        type="button"
-                        className="btn btn-secondary w-full mt-4"
-                        onClick={() => setIsLogin(!isLogin)}
-                    >
-                        {isLogin ? 'Need an account? Sign Up' : 'Have an account? Login'}
+                        {loading ? <Loader2 className="animate-spin" /> : 'Login'}
                     </button>
                 </form>
             </div>
