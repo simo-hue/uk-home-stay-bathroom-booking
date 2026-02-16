@@ -37,5 +37,5 @@ export default defineConfig({
       }
     })
   ],
-  base: '/uk-home-stay-bathroom-booking/'
+  base: '/uk/'
 })
