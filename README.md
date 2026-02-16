@@ -39,7 +39,7 @@ You're in a shared house. It's 7:55 AM. You have a meeting at 8:00 AM. You run t
 ### 2. Setup
 1. Clone this repo:
    ```bash
-   git clone https://github.com/luisfernarndo1/uk.git
+   git clone https://github.com/simo-hue/uk-home-stay-bathroom-booking.git
    ```
 2. Install dependencies:
    ```bash
@@ -67,4 +67,4 @@ Found a bug? Or maybe you want to add a feature like "Emergency Flush Request"? 
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
-**Made with ❤️ and a lot of patience by [luisfernarndo1](https://github.com/luisfernarndo1)**
+**Made with ❤️ and a lot of patience by [simo-hue](https://github.com/simo-hue)**
