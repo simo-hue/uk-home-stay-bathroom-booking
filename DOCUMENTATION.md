@@ -13,3 +13,9 @@
     - `Auth.jsx`: Login/Signup UI.
     - `Dashboard.jsx`: Main scheduler UI with real-time updates.
     - `supabase_schema.sql`: Database tables and RLS policies.
+
+## [2026-02-16 22:48]: GitHub Pages Deployment Configuration
+- *Details*: Configured the project for hosting on GitHub Pages under the repository name `uk`.
+- *Tech Notes*:
+  - **Vite Config**: Set `base` to `/uk/` to support subdirectory hosting.
+  - **CI/CD**: Added `.github/workflows/deploy.yml` for automated builds and deployments via GitHub Actions.

@@ -7,7 +7,12 @@ import {
     LogOut,
     Trash2,
     ChevronRight,
-    User as UserIcon
+    User as UserIcon,
+    Sparkles,
+    CalendarCheck,
+    X,
+    AlertCircle,
+    CheckCircle2
 } from 'lucide-react'
 
 export function Dashboard({ session }) {
@@ -16,6 +21,7 @@ export function Dashboard({ session }) {
     const [loading, setLoading] = useState(true)
     const [showModal, setShowModal] = useState(false)
     const [profile, setProfile] = useState(null)
+    const [dialog, setDialog] = useState({ show: false, title: '', message: '', type: 'confirm', onConfirm: null })
 
     useEffect(() => {
         fetchProfile()
@@ -33,12 +39,18 @@ export function Dashboard({ session }) {
     }, [activeTab])
 
     const fetchProfile = async () => {
-        const { data } = await supabase
+        const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .eq('id', session.user.id)
-            .single()
-        setProfile(data)
+            .maybeSingle()
+
+        if (error) {
+            console.error('Error fetching profile:', error.message)
+        }
+        if (data) {
+            setProfile(data)
+        }
     }
 
     const fetchReservations = async () => {
@@ -55,22 +67,48 @@ export function Dashboard({ session }) {
         const { data, error } = await supabase
             .from('reservations')
             .select(`
-        *,
-        profiles (username, display_name)
-      `)
+                *,
+                profiles (username, display_name)
+            `)
             .gte('start_time', start.toISOString())
             .lte('start_time', end.toISOString())
             .order('start_time', { ascending: true })
 
-        if (!error) setReservations(data)
+        if (error) {
+            console.error('Error fetching reservations:', error.message)
+        } else {
+            setReservations(data || [])
+        }
         setLoading(false)
     }
 
     const handleSignOut = () => supabase.auth.signOut()
 
     const deleteReservation = async (id) => {
-        if (!confirm('Cancel this booking?')) return
-        await supabase.from('reservations').delete().eq('id', id)
+        setDialog({
+            show: true,
+            title: 'Cancel Booking',
+            message: 'Are you sure you want to remove this bathroom slot?',
+            type: 'confirm',
+            onConfirm: async () => {
+                const { error } = await supabase.from('reservations').delete().eq('id', id)
+                if (error) {
+                    setDialog({
+                        show: true,
+                        title: 'Error',
+                        message: 'Could not remove booking. Please try again.',
+                        type: 'alert'
+                    })
+                } else {
+                    setDialog({
+                        show: true,
+                        title: 'Removed!',
+                        message: 'Your bathroom slot has been cancelled.',
+                        type: 'success'
+                    })
+                }
+            }
+        })
     }
 
     return (
@@ -81,7 +119,7 @@ export function Dashboard({ session }) {
                         <UserIcon size={20} />
                     </div>
                     <div className="welcome">
-                        <h3>Hi, {profile?.display_name || 'User'}</h3>
+                        <h3>Hi, {profile?.display_name || session.user.email?.split('@')[0] || 'User'}</h3>
                         <p>Ready for your slot?</p>
                     </div>
                 </div>
@@ -130,8 +168,8 @@ export function Dashboard({ session }) {
                                         <span className="res-duration">{res.duration_minutes} min</span>
                                     </div>
                                     {res.user_id === session.user.id && (
-                                        <button className="delete-btn" onClick={() => deleteReservation(res.id)}>
-                                            <Trash2 size={18} />
+                                        <button className="remove-btn icon-only" onClick={() => deleteReservation(res.id)}>
+                                            <Trash2 size={20} />
                                         </button>
                                     )}
                                 </div>
@@ -151,6 +189,13 @@ export function Dashboard({ session }) {
                     onClose={() => setShowModal(false)}
                     userId={session.user.id}
                     existingReservations={reservations}
+                />
+            )}
+
+            {dialog.show && (
+                <CustomDialog
+                    {...dialog}
+                    onClose={() => setDialog({ ...dialog, show: false })}
                 />
             )}
 
@@ -253,14 +298,21 @@ export function Dashboard({ session }) {
         }
         .res-user { font-weight: 600; }
         .res-duration { font-size: 0.75rem; color: var(--text-secondary); }
-        .delete-btn {
+        .remove-btn {
           background: none;
           border: none;
           color: var(--error);
-          opacity: 0.6;
+          padding: 8px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           cursor: pointer;
+          transition: all 0.2s;
+          opacity: 0.6;
         }
-        .delete-btn:hover { opacity: 1; }
+        .remove-btn:hover { background: rgba(239, 68, 68, 0.1); opacity: 1; }
+        .remove-btn:active { transform: scale(0.9); }
         .fab {
           position: absolute;
           bottom: 32px;
@@ -324,47 +376,88 @@ function BookingModal({ activeTab, onClose, userId, existingReservations }) {
             setError(error.message)
         } else {
             onClose()
+            setDialog({
+                show: true,
+                title: 'Booked!',
+                message: 'Your bathroom session is locked in.',
+                type: 'success'
+            })
         }
         setLoading(false)
     }
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content glass-card fade-in" onClick={e => e.stopPropagation()}>
-                <h2>Book for {activeTab === 'today' ? 'Today' : 'Tomorrow'}</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="input-group">
-                        <label className="input-label">Start Time</label>
-                        <input
-                            type="time"
-                            className="input-field"
-                            value={time}
-                            onChange={e => setTime(e.target.value)}
-                            required
-                        />
+            <div className="modal-content glass-card slide-up" onClick={e => e.stopPropagation()}>
+                <div className="modal-header">
+                    <div className="modal-title-wrapper">
+                        <div className="modal-icon-bg">
+                            <CalendarCheck size={20} className="text-accent" />
+                        </div>
+                        <div>
+                            <h2>Book Slot</h2>
+                            <p className="modal-subtitle">Schedule for {activeTab}</p>
+                        </div>
                     </div>
+                    <button className="close-btn" onClick={onClose}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleSubmit} className="modal-form">
                     <div className="input-group">
-                        <label className="input-label">Duration (minutes)</label>
-                        <div className="chip-group">
-                            {[10, 20, 30, 45].map(d => (
+                        <label className="input-label">What time?</label>
+                        <div className="time-input-wrapper">
+                            <div className="input-with-icon">
+                                <Clock size={18} className="field-icon" />
+                                <input
+                                    type="time"
+                                    className="input-field pl-10"
+                                    value={time}
+                                    onChange={e => setTime(e.target.value)}
+                                    required
+                                />
+                            </div>
+                            {activeTab === 'today' && (
+                                <button
+                                    type="button"
+                                    className="btn btn-secondary now-btn"
+                                    onClick={() => {
+                                        const now = new Date();
+                                        const hours = String(now.getHours()).padStart(2, '0');
+                                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                                        setTime(`${hours}:${minutes}`);
+                                    }}
+                                >
+                                    <Sparkles size={14} />
+                                    <span>Now</span>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="input-group">
+                        <label className="input-label">How long?</label>
+                        <div className="chip-grid">
+                            {[10, 15, 20, 30, 45, 60].map(d => (
                                 <button
                                     key={d}
                                     type="button"
-                                    className={`chip ${duration === d ? 'active' : ''}`}
+                                    className={`duration-chip ${duration === d ? 'active' : ''}`}
                                     onClick={() => setDuration(d)}
                                 >
-                                    {d}m
+                                    <span className="duration-value">{d}</span>
+                                    <span className="duration-unit">min</span>
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {error && <p className="error-text">{error}</p>}
+                    {error && <div className="error-box fade-in">{error}</div>}
 
-                    <div className="modal-actions">
-                        <button type="button" className="btn btn-secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit" className="btn btn-primary" disabled={loading || !time}>
-                            {loading ? 'Booking...' : 'Confirm'}
+                    <div className="modal-footer">
+                        <button type="submit" className="btn btn-primary submit-btn" disabled={loading || !time}>
+                            {loading ? 'Booking...' : 'Confirm Reservation'}
                         </button>
                     </div>
                 </form>
@@ -388,26 +481,149 @@ function BookingModal({ activeTab, onClose, userId, existingReservations }) {
           max-width: 460px;
           margin: 0 auto;
           padding: 24px;
+          border-radius: 24px 24px 0 0;
+          border-bottom: none;
         }
-        .modal-content h2 { margin-bottom: 24px; }
-        .chip-group { display: flex; gap: 8px; }
-        .chip {
-          padding: 8px 16px;
-          border-radius: 20px;
+        @media (min-width: 500px) {
+          .modal-overlay { align-items: center; }
+          .modal-content { border-radius: 24px; border-bottom: 1px solid var(--glass-border); }
+        }
+        .modal-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 24px;
+        }
+        .modal-title-wrapper {
+          display: flex;
+          gap: 16px;
+          align-items: center;
+        }
+        .modal-icon-bg {
+          width: 44px;
+          height: 44px;
+          background: rgba(56, 189, 248, 0.1);
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .modal-content h2 { margin-bottom: 0; font-size: 1.5rem; }
+        .modal-subtitle { color: var(--text-secondary); font-size: 0.875rem; }
+        .close-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; }
+        .input-with-icon { position: relative; flex: 1; }
+        .field-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; }
+        .pl-10 { padding-left: 40px !important; }
+        .chip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .duration-chip {
+          padding: 12px 8px;
+          border-radius: 14px;
           border: 1px solid var(--glass-border);
           background: var(--bg-secondary);
           color: var(--text-secondary);
           cursor: pointer;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transition: all 0.2s;
         }
-        .chip.active {
+        .duration-chip.active {
           background: var(--accent-primary);
           color: white;
           border-color: var(--accent-primary);
+          box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
+          transform: translateY(-2px);
         }
-        .error-text { color: var(--error); font-size: 0.875rem; margin-bottom: 16px; }
-        .modal-actions { display: flex; gap: 12px; margin-top: 24px; }
-        .modal-actions .btn { flex: 1; }
+        .duration-value { font-size: 1.125rem; font-weight: 700; line-height: 1; }
+        .duration-unit { font-size: 0.75rem; opacity: 0.8; }
+        .error-box { 
+          padding: 12px; 
+          background: rgba(239, 68, 68, 0.1); 
+          border: 1px solid var(--error); 
+          border-radius: 12px; 
+          color: var(--error); 
+          font-size: 0.875rem; 
+          margin-bottom: 20px;
+        }
+        .modal-footer { margin-top: 32px; }
+        .submit-btn { width: 100%; padding: 16px; border-radius: 16px; font-size: 1.125rem; }
+        @keyframes slideUp {
+          from { transform: translateY(100%); }
+          to { transform: translateY(0); }
+        }
+        .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .text-accent { color: var(--accent-primary); }
+        .time-input-wrapper { display: flex; gap: 8px; }
+        .now-btn { height: 100%; padding: 0 16px; font-size: 0.875rem; }
       `}</style>
+        </div>
+    )
+}
+function CustomDialog({ title, message, type, onConfirm, onClose }) {
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="dialog-content glass-card slide-up" onClick={e => e.stopPropagation()}>
+                <div className="dialog-icon-wrapper">
+                    {type === 'confirm' ? (
+                        <AlertCircle size={32} className="text-accent" />
+                    ) : type === 'success' ? (
+                        <CheckCircle2 size={32} className="text-success" />
+                    ) : (
+                        <AlertCircle size={32} className="text-error" />
+                    )}
+                </div>
+                <div className="dialog-text">
+                    <h2>{title}</h2>
+                    <p>{message}</p>
+                </div>
+                <div className="dialog-footer">
+                    {type === 'confirm' ? (
+                        <>
+                            <button className="btn btn-secondary flex-1" onClick={onClose}>No, keep it</button>
+                            <button className="btn btn-primary flex-1" onClick={() => {
+                                onConfirm();
+                                onClose();
+                            }}>Yes, remove</button>
+                        </>
+                    ) : (
+                        <button className="btn btn-primary w-full" onClick={onClose}>Got it</button>
+                    )}
+                </div>
+            </div>
+            <style>{`
+                .dialog-content {
+                    width: 100%;
+                    max-width: 320px;
+                    margin: 0 auto;
+                    padding: 32px 24px;
+                    text-align: center;
+                    border-radius: 28px;
+                }
+                .dialog-icon-wrapper {
+                    margin-bottom: 20px;
+                    display: flex;
+                    justify-content: center;
+                }
+                .dialog-text h2 {
+                    font-size: 1.25rem;
+                    margin-bottom: 8px;
+                }
+                .dialog-text p {
+                    color: var(--text-secondary);
+                    font-size: 0.9375rem;
+                    margin-bottom: 32px;
+                }
+                .dialog-footer {
+                    display: flex;
+                    gap: 12px;
+                }
+                .flex-1 { flex: 1; }
+                .text-error { color: var(--error); }
+                .text-success { color: var(--success); }
+                @media (max-width: 500px) {
+                    .modal-overlay { align-items: center; }
+                }
+            `}</style>
         </div>
     )
 }
