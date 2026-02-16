@@ -355,6 +355,13 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
         const [hours, minutes] = time.split(':')
         start.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
+        // Validation: Cannot book in the past
+        if (start.getTime() < new Date().getTime()) {
+            setError('You cannot book a slot in the past.')
+            setLoading(false)
+            return
+        }
+
         // Basic overlap check (local)
         const newStart = start.getTime()
         const newEnd = newStart + duration * 60000

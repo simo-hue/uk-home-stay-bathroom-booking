@@ -55,3 +55,8 @@
   - **State Management**: Fixed a scoping issue by passing `setDialog` into `BookingModal`.
   - **Immediate Feedback**: Added an `onSuccess` callback to `BookingModal` that triggers an immediate `fetchReservations()` call in the parent component.
   - **UX**: Ensured the success dialog appears and the booking list is updated synchronously after insertion.
+8. [2026-02-16 23:28]: Booking Validation - No Past Bookings
+- *Details*: Added a strict validation rule to prevent users from creating reservations for times that have already passed.
+- *Tech Notes*:
+  - **Logic**: Implemented a timestamp comparison in `BookingModal.handleSubmit` that checks the selected `start_time` against the current system time.
+  - **UI**: Added a descriptive error message "You cannot book a slot in the past" in the modal's error container.
