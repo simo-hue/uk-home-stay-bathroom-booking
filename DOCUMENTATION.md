@@ -25,6 +25,9 @@
 ## [2026-02-16 23:04]: Removed Mock Mode
 - *Details*: Completely removed the Mock Supabase fallback. The app now requires real Supabase credentials to run.
 - *Files*: `src/lib/supabase.js` simplified.
+## [2026-02-16 23:06]: Professional Branding
+- *Details*: Replaced default Vite README with a professional, humorous, and optimized project description. Added a MIT License.
+- *Files*: `README.md`, `LICENSE` created/updated.
 
 
 ## [2026-02-16 23:05]: PWA Logo Enhancement
