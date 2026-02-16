@@ -37,8 +37,8 @@
   - **Favicon**: Added `favicon.png` and updated `index.html` to use it instead of the default Vite logo.
   - **Glassmorphism**: Maintained the premium glassmorphic style for the central icon elements.
 
-## [2026-02-16 23:10]: Deployment Fixed: Asset Path Resolution
-- *Details*: Fixed 404 errors on the deployed site caused by absolute path resolution and incorrect deployment source.
+## [2026-02-16 23:18]: Deployment Fixed: Repository Name Alignment
+- *Details*: Fixed GitHub Actions build error by providing instructions to enable Pages. Corrected Vite `base` path to match repository name.
 - *Tech Notes*:
-  - **Index.html**: Changed `/favicon.png` and `/src/main.jsx` to `./favicon.png` and `./src/main.jsx` to support subdirectory hosting more robustly.
-  - **Diagnosis**: Identified that the source `index.html` was being served instead of the `dist/` build. Instructed the user to switch GitHub Pages source to "GitHub Actions".
+  - **Vite Config**: Changed `base` from `/uk/` to `/uk-home-stay-bathroom-booking/` to match the actual repository.
+  - **Environment**: Verified that the site requires "GitHub Actions" source in repo settings.
