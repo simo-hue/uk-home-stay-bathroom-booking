@@ -187,6 +187,11 @@ export function Dashboard({ session }) {
                 <BookingModal
                     activeTab={activeTab}
                     onClose={() => setShowModal(false)}
+                    onSuccess={() => {
+                        setShowModal(false)
+                        fetchReservations()
+                    }}
+                    setDialog={setDialog}
                     userId={session.user.id}
                     existingReservations={reservations}
                 />
@@ -333,7 +338,7 @@ export function Dashboard({ session }) {
     )
 }
 
-function BookingModal({ activeTab, onClose, userId, existingReservations }) {
+function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existingReservations }) {
     const [time, setTime] = useState('')
     const [duration, setDuration] = useState(10)
     const [loading, setLoading] = useState(false)
@@ -375,7 +380,7 @@ function BookingModal({ activeTab, onClose, userId, existingReservations }) {
         if (error) {
             setError(error.message)
         } else {
-            onClose()
+            onSuccess()
             setDialog({
                 show: true,
                 title: 'Booked!',

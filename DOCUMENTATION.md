@@ -49,3 +49,9 @@
   - **Safe Areas**: Added `env(safe-area-inset-bottom)` support to modal overlays for better compatibility with mobile home indicators.
   - **Interaction**: Added active states and transitions to the "Now" button for better tactile feedback.
   - **Files**: `src/components/Dashboard.jsx` updated.
+7. [2026-02-16 23:28]: Automatic Refresh & Feedback Fix
+- *Details*: Resolved a bug where the application would crash after a successful booking and fail to update the list.
+- *Tech Notes*:
+  - **State Management**: Fixed a scoping issue by passing `setDialog` into `BookingModal`.
+  - **Immediate Feedback**: Added an `onSuccess` callback to `BookingModal` that triggers an immediate `fetchReservations()` call in the parent component.
+  - **UX**: Ensured the success dialog appears and the booking list is updated synchronously after insertion.
