@@ -42,3 +42,10 @@
 - *Tech Notes*:
   - **Index.html**: Changed `/favicon.png` and `/src/main.jsx` to `./favicon.png` and `./src/main.jsx` to support subdirectory hosting more robustly.
   - **Diagnosis**: Identified that the source `index.html` was being served instead of the `dist/` build. Instructed the user to switch GitHub Pages source to "GitHub Actions".
+6. [2026-02-16 23:25]: Mobile UI Responsiveness & PWA Optimization
+- *Details*: Fixed the "Now" button positioning and responsiveness in the Booking Modal. Improved PWA safe-area support.
+- *Tech Notes*:
+  - **Flexbox**: Optimized `.time-input-wrapper` with `align-items: stretch` and `flex-shrink: 0` for the "Now" button to prevent layout breakage on small screens.
+  - **Safe Areas**: Added `env(safe-area-inset-bottom)` support to modal overlays for better compatibility with mobile home indicators.
+  - **Interaction**: Added active states and transitions to the "Now" button for better tactile feedback.
+  - **Files**: `src/components/Dashboard.jsx` updated.

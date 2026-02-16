@@ -471,9 +471,11 @@ function BookingModal({ activeTab, onClose, userId, existingReservations }) {
           bottom: 0;
           background: rgba(0, 0, 0, 0.4);
           backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
           display: flex;
           align-items: flex-end;
           padding: 20px;
+          padding-bottom: calc(20px + env(safe-area-inset-bottom));
           z-index: 100;
         }
         .modal-content {
@@ -511,8 +513,8 @@ function BookingModal({ activeTab, onClose, userId, existingReservations }) {
         .modal-content h2 { margin-bottom: 0; font-size: 1.5rem; }
         .modal-subtitle { color: var(--text-secondary); font-size: 0.875rem; }
         .close-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; }
-        .input-with-icon { position: relative; flex: 1; }
-        .field-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; }
+        .input-with-icon { position: relative; flex: 1; min-width: 0; }
+        .field-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; z-index: 1; }
         .pl-10 { padding-left: 40px !important; }
         .chip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
         .duration-chip {
@@ -553,8 +555,32 @@ function BookingModal({ activeTab, onClose, userId, existingReservations }) {
         }
         .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
         .text-accent { color: var(--accent-primary); }
-        .time-input-wrapper { display: flex; gap: 8px; }
-        .now-btn { height: 100%; padding: 0 16px; font-size: 0.875rem; }
+        .time-input-wrapper { 
+          display: flex; 
+          gap: 10px; 
+          align-items: stretch;
+          width: 100%;
+        }
+        .now-btn { 
+          flex-shrink: 0;
+          white-space: nowrap;
+          height: auto; 
+          padding: 0 16px; 
+          font-size: 0.875rem;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          transition: all 0.2s ease;
+        }
+        .now-btn:active {
+          transform: scale(0.95);
+          background: rgba(255, 255, 255, 0.1);
+        }
+        @media (max-width: 360px) {
+          .time-input-wrapper { gap: 6px; }
+          .now-btn { padding: 0 10px; font-size: 0.75rem; gap: 4px; }
+        }
       `}</style>
         </div>
     )
@@ -621,7 +647,10 @@ function CustomDialog({ title, message, type, onConfirm, onClose }) {
                 .text-error { color: var(--error); }
                 .text-success { color: var(--success); }
                 @media (max-width: 500px) {
-                    .modal-overlay { align-items: center; }
+                    .modal-overlay { 
+                        align-items: center; 
+                        padding-bottom: env(safe-area-inset-bottom);
+                    }
                 }
             `}</style>
         </div>
