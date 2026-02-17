@@ -319,8 +319,8 @@ export function Dashboard({ session }) {
         .remove-btn:hover { background: rgba(239, 68, 68, 0.1); opacity: 1; }
         .remove-btn:active { transform: scale(0.9); }
         .fab {
-          position: absolute;
-          bottom: 32px;
+          position: fixed;
+          bottom: calc(32px + env(safe-area-inset-bottom));
           right: 32px;
           width: 56px;
           height: 56px;
@@ -329,7 +329,14 @@ export function Dashboard({ session }) {
           align-items: center;
           justify-content: center;
           box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-          z-index: 10;
+          z-index: 90;
+          transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .fab:hover {
+          transform: scale(1.05) translateY(-2px);
+        }
+        .fab:active {
+          transform: scale(0.95) translateY(0);
         }
         .mb-4 { margin-bottom: 16px; }
         .text-secondary { color: var(--text-secondary); }

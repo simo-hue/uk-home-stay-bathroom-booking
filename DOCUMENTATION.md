@@ -65,3 +65,11 @@
 - *Tech Notes*:
   - **Flexbox**: Applied `display: flex` to the input wrapper and set the input field to `height: 100%`.
   - **Layout**: Removed explicit `height: auto` from `.now-btn` to allow it to naturally stretch and match the sibling container's height within the flex wrapper.
+
+## [2026-02-17 08:58]: FAB Fixed Position & UI Polish
+- *Details*: Fixed the position of the "+" booking button to be truly fixed in the lower right part of the screen.
+- *Tech Notes*:
+  - **Positioning**: Changed `.fab` from `absolute` to `fixed` to decouple it from the scrolling dashboard container.
+  - **Responsiveness**: Added `env(safe-area-inset-bottom)` to ensure the button is navigable on modern mobile devices.
+  - **Aesthetics**: Increased `z-index` to 90 and added a spring-like micro-animation (`cubic-bezier`) for hover and active states to improve the premium feel.
+  - **Files**: `src/components/Dashboard.jsx` updated.
