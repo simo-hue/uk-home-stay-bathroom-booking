@@ -6,15 +6,18 @@ import {
     Plus,
     LogOut,
     Trash2,
-    ChevronRight,
     User as UserIcon,
     Sparkles,
     CalendarCheck,
     X,
     AlertCircle,
-    CheckCircle2
+    CheckCircle2,
+    Bath
 } from 'lucide-react'
 
+/* ─────────────────────────────────────────────────────────────
+   DASHBOARD
+───────────────────────────────────────────────────────────── */
 export function Dashboard({ session }) {
     const [activeTab, setActiveTab] = useState('today')
     const [reservations, setReservations] = useState([])
@@ -26,65 +29,39 @@ export function Dashboard({ session }) {
     useEffect(() => {
         fetchProfile()
         fetchReservations()
-
-        // Subscribe to changes
         const channel = supabase
             .channel('schema-db-changes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, () => {
-                fetchReservations()
-            })
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'reservations' }, fetchReservations)
             .subscribe()
-
         return () => supabase.removeChannel(channel)
     }, [activeTab])
 
     const fetchProfile = async () => {
         const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle()
-
-        if (error) {
-            console.error('Error fetching profile:', error.message)
-        }
-        if (data) {
-            setProfile(data)
-        }
+            .from('profiles').select('*').eq('id', session.user.id).maybeSingle()
+        if (!error && data) setProfile(data)
     }
 
     const fetchReservations = async () => {
         setLoading(true)
         const start = new Date()
-        if (activeTab === 'tomorrow') {
-            start.setDate(start.getDate() + 1)
-        }
+        if (activeTab === 'tomorrow') start.setDate(start.getDate() + 1)
         start.setHours(0, 0, 0, 0)
-
         const end = new Date(start)
         end.setHours(23, 59, 59, 999)
-
         const { data, error } = await supabase
             .from('reservations')
-            .select(`
-                *,
-                profiles (username, display_name)
-            `)
+            .select('*, profiles (username, display_name)')
             .gte('start_time', start.toISOString())
             .lte('start_time', end.toISOString())
             .order('start_time', { ascending: true })
-
-        if (error) {
-            console.error('Error fetching reservations:', error.message)
-        } else {
-            setReservations(data || [])
-        }
+        if (!error) setReservations(data || [])
         setLoading(false)
     }
 
     const handleSignOut = () => supabase.auth.signOut()
 
-    const deleteReservation = async (id) => {
+    const deleteReservation = (id) => {
         setDialog({
             show: true,
             title: 'Cancel Booking',
@@ -92,259 +69,421 @@ export function Dashboard({ session }) {
             type: 'confirm',
             onConfirm: async () => {
                 const { error } = await supabase.from('reservations').delete().eq('id', id)
-                if (error) {
-                    setDialog({
-                        show: true,
-                        title: 'Error',
-                        message: 'Could not remove booking. Please try again.',
-                        type: 'alert'
-                    })
-                } else {
-                    setDialog({
-                        show: true,
-                        title: 'Removed!',
-                        message: 'Your bathroom slot has been cancelled.',
-                        type: 'success'
-                    })
-                }
+                if (!error) fetchReservations()
+                setDialog({
+                    show: true,
+                    title: error ? 'Error' : 'Removed!',
+                    message: error ? 'Could not remove booking. Please try again.' : 'Your bathroom slot has been cancelled.',
+                    type: error ? 'alert' : 'success'
+                })
             }
         })
     }
 
+    const displayName = profile?.display_name || session.user.email?.split('@')[0] || 'User'
+    const initials = displayName.slice(0, 2).toUpperCase()
+
     return (
-        <div className="dashboard fade-in">
+        <div className="dashboard">
+            {/* ── Header ───────────────────────────────────── */}
             <header className="dash-header">
-                <div className="user-info">
-                    <div className="avatar">
-                        <UserIcon size={20} />
-                    </div>
-                    <div className="welcome">
-                        <h3>Hi, {profile?.display_name || session.user.email?.split('@')[0] || 'User'}</h3>
-                        <p>Ready for your slot?</p>
+                <div className="dash-user">
+                    <div className="dash-avatar" aria-hidden="true">{initials}</div>
+                    <div className="dash-welcome">
+                        <p className="dash-greeting">Hi, {displayName} 👋</p>
+                        <p className="dash-sub">Ready for your slot?</p>
                     </div>
                 </div>
-                <button className="icon-btn" onClick={handleSignOut}>
-                    <LogOut size={20} />
+                <button className="dash-signout" onClick={handleSignOut} aria-label="Sign out">
+                    <LogOut size={18} />
                 </button>
             </header>
 
-            <main className="dash-main">
-                <div className="tabs glass-card">
+            {/* ── Tabs ─────────────────────────────────────── */}
+            <div className="dash-tabs glass-card" role="tablist">
+                {['today', 'tomorrow'].map(tab => (
                     <button
-                        className={`tab ${activeTab === 'today' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('today')}
+                        key={tab}
+                        role="tab"
+                        aria-selected={activeTab === tab}
+                        className={`dash-tab ${activeTab === tab ? 'dash-tab--active' : ''}`}
+                        onClick={() => setActiveTab(tab)}
                     >
-                        Today
+                        {tab === 'today' ? 'Today' : 'Tomorrow'}
                     </button>
-                    <button
-                        className={`tab ${activeTab === 'tomorrow' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('tomorrow')}
-                    >
-                        Tomorrow
-                    </button>
-                </div>
+                ))}
+            </div>
 
-                <div className="content-scroll">
-                    {loading ? (
-                        <div className="status-msg">Loading slots...</div>
-                    ) : reservations.length === 0 ? (
-                        <div className="empty-state glass-card">
-                            <Calendar size={40} className="mb-4 text-secondary" />
-                            <p>No bookings yet for {activeTab}.</p>
-                            <button className="btn btn-primary mt-4" onClick={() => setShowModal(true)}>
-                                Book the first slot
-                            </button>
+            {/* ── Content ──────────────────────────────────── */}
+            <main className="dash-scroll" role="tabpanel">
+                {loading ? (
+                    <div className="dash-status">
+                        <div className="dash-loader" />
+                        <span>Loading slots…</span>
+                    </div>
+                ) : reservations.length === 0 ? (
+                    <div className="empty-state glass-card fade-in">
+                        <div className="empty-icon">
+                            <Bath size={32} strokeWidth={1.5} />
                         </div>
-                    ) : (
-                        <div className="reservation-list">
-                            {reservations.map((res) => (
-                                <div key={res.id} className="reservation-card glass-card fade-in">
-                                    <div className="res-time">
-                                        <Clock size={16} />
-                                        <span>{new Date(res.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        <h2 className="empty-title">All clear!</h2>
+                        <p className="empty-body">No bookings yet for {activeTab}.</p>
+                        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+                            <Plus size={18} /> Book the first slot
+                        </button>
+                    </div>
+                ) : (
+                    <div className="res-list">
+                        {reservations.map((res, i) => {
+                            const isOwn = res.user_id === session.user.id
+                            const startDate = new Date(res.start_time)
+                            const endDate = new Date(startDate.getTime() + res.duration_minutes * 60000)
+                            const fmt = (d) => d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            return (
+                                <div
+                                    key={res.id}
+                                    className={`res-card glass-card fade-in ${isOwn ? 'res-card--own' : ''}`}
+                                    style={{ animationDelay: `${i * 40}ms` }}
+                                >
+                                    <div className="res-time-col">
+                                        <span className="res-time-start">{fmt(startDate)}</span>
+                                        <div className="res-time-bar" />
+                                        <span className="res-time-end">{fmt(endDate)}</span>
                                     </div>
                                     <div className="res-info">
-                                        <span className="res-user">{res.profiles?.display_name || res.profiles?.username}</span>
-                                        <span className="res-duration">{res.duration_minutes} min</span>
+                                        <span className="res-name">{res.profiles?.display_name || res.profiles?.username}</span>
+                                        <span className="res-dur">{res.duration_minutes} min</span>
                                     </div>
-                                    {res.user_id === session.user.id && (
-                                        <button className="remove-btn icon-only" onClick={() => deleteReservation(res.id)}>
-                                            <Trash2 size={20} />
+                                    {isOwn && (
+                                        <button
+                                            className="res-delete"
+                                            onClick={() => deleteReservation(res.id)}
+                                            aria-label="Delete booking"
+                                        >
+                                            <Trash2 size={17} />
                                         </button>
                                     )}
                                 </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
+                            )
+                        })}
+                    </div>
+                )}
+                {/* Spacer so FAB doesn't overlap last card */}
+                <div className="fab-spacer" />
             </main>
 
-            <button className="fab btn-primary" onClick={() => setShowModal(true)}>
-                <Plus size={24} />
+            {/* ── FAB ──────────────────────────────────────── */}
+            <button
+                className="fab btn-primary"
+                onClick={() => setShowModal(true)}
+                aria-label="New booking"
+            >
+                <Plus size={26} strokeWidth={2.5} />
             </button>
 
+            {/* ── Modal ────────────────────────────────────── */}
             {showModal && (
                 <BookingModal
                     activeTab={activeTab}
                     onClose={() => setShowModal(false)}
-                    onSuccess={() => {
-                        setShowModal(false)
-                        fetchReservations()
-                    }}
+                    onSuccess={() => { setShowModal(false); fetchReservations() }}
                     setDialog={setDialog}
                     userId={session.user.id}
                     existingReservations={reservations}
                 />
             )}
 
+            {/* ── Dialog ───────────────────────────────────── */}
             {dialog.show && (
                 <CustomDialog
                     {...dialog}
-                    onClose={() => setDialog({ ...dialog, show: false })}
+                    onClose={() => setDialog(d => ({ ...d, show: false }))}
                 />
             )}
 
             <style>{`
-        .dashboard {
-          max-width: 500px;
-          margin: 0 auto;
-          height: 100dvh;
-          display: flex;
-          flex-direction: column;
-          padding: 20px;
-          position: relative;
-        }
-        .dash-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 24px;
-        }
-        .user-info {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-        .avatar {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          background: var(--bg-secondary);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border: 1px solid var(--glass-border);
-        }
-        .welcome h3 { font-size: 1.125rem; }
-        .welcome p { color: var(--text-secondary); font-size: 0.875rem; }
-        .icon-btn {
-          background: none;
-          border: none;
-          color: var(--text-secondary);
-          cursor: pointer;
-        }
-        .tabs {
-          display: flex;
-          padding: 4px;
-          margin-bottom: 24px;
-        }
-        .tab {
-          flex: 1;
-          padding: 10px;
-          border: none;
-          background: none;
-          color: var(--text-secondary);
-          font-weight: 600;
-          border-radius: 12px;
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-        .tab.active {
-          background: rgba(255, 255, 255, 0.1);
-          color: white;
-        }
-        .content-scroll {
-          flex: 1;
-          overflow-y: auto;
-          padding-bottom: 80px;
-        }
-        .empty-state {
-          padding: 48px 24px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-        }
-        .reservation-list {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-        .reservation-card {
-          padding: 16px;
-          display: flex;
-          align-items: center;
-          gap: 16px;
-        }
-        .res-time {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 4px;
-          color: var(--accent-primary);
-          font-weight: 700;
-          font-size: 0.875rem;
-          min-width: 60px;
-        }
-        .res-info {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-        }
-        .res-user { font-weight: 600; }
-        .res-duration { font-size: 0.75rem; color: var(--text-secondary); }
-        .remove-btn {
-          background: none;
-          border: none;
-          color: var(--error);
-          padding: 8px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s;
-          opacity: 0.6;
-        }
-        .remove-btn:hover { background: rgba(239, 68, 68, 0.1); opacity: 1; }
-        .remove-btn:active { transform: scale(0.9); }
-        .fab {
-          position: fixed;
-          bottom: calc(32px + env(safe-area-inset-bottom));
-          right: 32px;
-          width: 56px;
-          height: 56px;
-          border-radius: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-          z-index: 90;
-          transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-        .fab:hover {
-          transform: scale(1.05) translateY(-2px);
-        }
-        .fab:active {
-          transform: scale(0.95) translateY(0);
-        }
-        .mb-4 { margin-bottom: 16px; }
-        .text-secondary { color: var(--text-secondary); }
-      `}</style>
+                /* ── Dashboard shell ─────────────────────── */
+                .dashboard {
+                    display: flex;
+                    flex-direction: column;
+                    height: 100dvh;
+                    max-width: 520px;
+                    margin: 0 auto;
+                    padding: 0 16px;
+                    padding-top:    max(16px, env(safe-area-inset-top)    + 12px);
+                    padding-bottom: max(0px,  env(safe-area-inset-bottom));
+                    position: relative;
+                    overflow: hidden;
+                }
+
+                /* ── Header ─────────────────────────────── */
+                .dash-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    margin-bottom: 20px;
+                    min-height: 56px;
+                    flex-shrink: 0;
+                }
+                .dash-user {
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    min-width: 0;
+                }
+                .dash-avatar {
+                    flex-shrink: 0;
+                    width: 42px;
+                    height: 42px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(129,140,248,0.25));
+                    border: 1px solid var(--glass-border-hi);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 0.8125rem;
+                    font-weight: 700;
+                    letter-spacing: 0.03em;
+                    color: var(--accent-primary);
+                }
+                .dash-welcome { min-width: 0; }
+                .dash-greeting {
+                    font-size: 1rem;
+                    font-weight: 700;
+                    color: var(--text-primary);
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .dash-sub {
+                    font-size: 0.8125rem;
+                    color: var(--text-secondary);
+                    margin-top: 1px;
+                }
+                .dash-signout {
+                    flex-shrink: 0;
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 12px;
+                    background: var(--bg-surface);
+                    border: 1px solid var(--glass-border);
+                    color: var(--text-secondary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    transition: background var(--t-base) ease, color var(--t-base) ease;
+                }
+                .dash-signout:active { background: rgba(255,255,255,0.08); color: var(--text-primary); }
+
+                /* ── Tabs ───────────────────────────────── */
+                .dash-tabs {
+                    display: flex;
+                    padding: 4px;
+                    margin-bottom: 16px;
+                    border-radius: 16px;
+                    flex-shrink: 0;
+                }
+                .dash-tab {
+                    flex: 1;
+                    min-height: 44px;
+                    border: none;
+                    background: transparent;
+                    color: var(--text-secondary);
+                    font-family: inherit;
+                    font-size: 0.9375rem;
+                    font-weight: 600;
+                    border-radius: 12px;
+                    cursor: pointer;
+                    transition: background var(--t-base) ease, color var(--t-base) ease;
+                    user-select: none;
+                    -webkit-user-select: none;
+                }
+                .dash-tab--active {
+                    background: rgba(255,255,255,0.1);
+                    color: var(--text-primary);
+                }
+                .dash-tab:active { opacity: 0.7; }
+
+                /* ── Scroll area ────────────────────────── */
+                .dash-scroll {
+                    flex: 1;
+                    overflow-y: auto;
+                    overflow-x: hidden;
+                    -webkit-overflow-scrolling: touch;
+                    overscroll-behavior: contain;
+                }
+                .fab-spacer { height: 96px; }
+
+                /* ── Loading ────────────────────────────── */
+                .dash-status {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 12px;
+                    padding-top: 64px;
+                    color: var(--text-secondary);
+                    font-size: 0.9rem;
+                }
+                .dash-loader {
+                    width: 28px;
+                    height: 28px;
+                    border-radius: 50%;
+                    border: 2.5px solid var(--glass-border);
+                    border-top-color: var(--accent-primary);
+                    animation: spin 0.8s linear infinite;
+                }
+
+                /* ── Empty state ────────────────────────── */
+                .empty-state {
+                    margin-top: 12px;
+                    padding: 48px 24px 40px;
+                    text-align: center;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 10px;
+                }
+                .empty-icon {
+                    width: 72px;
+                    height: 72px;
+                    border-radius: 22px;
+                    background: rgba(56,189,248,0.1);
+                    border: 1px solid rgba(56,189,248,0.2);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--accent-primary);
+                    margin-bottom: 6px;
+                }
+                .empty-title {
+                    font-size: 1.25rem;
+                    font-weight: 700;
+                }
+                .empty-body {
+                    color: var(--text-secondary);
+                    font-size: 0.9375rem;
+                    margin-bottom: 8px;
+                }
+
+                /* ── Reservation list ───────────────────── */
+                .res-list {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 10px;
+                    padding-top: 4px;
+                }
+                .res-card {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                    padding: 14px 16px;
+                    border-radius: 18px;
+                    transition: transform var(--t-fast) ease, box-shadow var(--t-fast) ease;
+                }
+                .res-card--own {
+                    border-color: rgba(56,189,248,0.22);
+                    background: rgba(56,189,248,0.06);
+                }
+
+                /* Time column */
+                .res-time-col {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 3px;
+                    min-width: 52px;
+                }
+                .res-time-start {
+                    font-size: 0.9375rem;
+                    font-weight: 700;
+                    color: var(--accent-primary);
+                    line-height: 1;
+                }
+                .res-time-bar {
+                    width: 2px;
+                    height: 12px;
+                    background: linear-gradient(to bottom, var(--accent-primary), var(--accent-secondary));
+                    border-radius: 1px;
+                    opacity: 0.5;
+                }
+                .res-time-end {
+                    font-size: 0.75rem;
+                    color: var(--text-secondary);
+                    line-height: 1;
+                }
+
+                /* Info column */
+                .res-info {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 3px;
+                    min-width: 0;
+                }
+                .res-name {
+                    font-size: 0.9375rem;
+                    font-weight: 600;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+                .res-dur {
+                    font-size: 0.8125rem;
+                    color: var(--text-secondary);
+                }
+
+                /* Delete button */
+                .res-delete {
+                    flex-shrink: 0;
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 50%;
+                    background: transparent;
+                    border: none;
+                    color: var(--error);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    opacity: 0.55;
+                    transition: opacity var(--t-base) ease, background var(--t-base) ease;
+                }
+                .res-delete:active {
+                    opacity: 1;
+                    background: rgba(248,113,113,0.12);
+                    transform: scale(0.92);
+                }
+
+                /* ── FAB ──────────────────────────────── */
+                .fab {
+                    position: fixed;
+                    bottom: max(28px, env(safe-area-inset-bottom) + 20px);
+                    right: 24px;
+                    width: 60px;
+                    height: 60px;
+                    border-radius: 20px;
+                    border: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    box-shadow: 0 8px 28px rgba(56,189,248,0.35), 0 4px 12px rgba(0,0,0,0.4);
+                    z-index: 90;
+                    transition: transform var(--t-fast) var(--ease-bounce), box-shadow var(--t-fast) ease;
+                }
+                .fab:active {
+                    transform: scale(0.93) translateY(2px);
+                    box-shadow: 0 4px 12px rgba(56,189,248,0.25);
+                }
+
+                @keyframes spin { to { transform: rotate(360deg); } }
+            `}</style>
         </div>
     )
 }
 
+/* ─────────────────────────────────────────────────────────────
+   BOOKING MODAL
+───────────────────────────────────────────────────────────── */
 function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existingReservations }) {
     const [time, setTime] = useState('')
     const [duration, setDuration] = useState(10)
@@ -358,25 +497,22 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
 
         const start = new Date()
         if (activeTab === 'tomorrow') start.setDate(start.getDate() + 1)
-
         const [hours, minutes] = time.split(':')
         start.setHours(parseInt(hours), parseInt(minutes), 0, 0)
 
-        // Validation: Cannot book in the past
-        if (start.getTime() < new Date().getTime()) {
+        // Cannot book in the past (60s grace so "Now" always works)
+        if (start.getTime() < new Date().getTime() - 60000) {
             setError('You cannot book a slot in the past.')
             setLoading(false)
             return
         }
 
-        // Basic overlap check (local)
         const newStart = start.getTime()
         const newEnd = newStart + duration * 60000
-
         const overlap = existingReservations.some(res => {
-            const resStart = new Date(res.start_time).getTime()
-            const resEnd = resStart + res.duration_minutes * 60000
-            return (newStart < resEnd && newEnd > resStart)
+            const rs = new Date(res.start_time).getTime()
+            const re = rs + res.duration_minutes * 60000
+            return newStart < re && newEnd > rs
         })
 
         if (overlap) {
@@ -385,53 +521,60 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
             return
         }
 
-        const { error } = await supabase.from('reservations').insert({
+        const { error: dbError } = await supabase.from('reservations').insert({
             user_id: userId,
             start_time: start.toISOString(),
             duration_minutes: duration
         })
 
-        if (error) {
-            setError(error.message)
+        if (dbError) {
+            setError(dbError.message)
         } else {
             onSuccess()
-            setDialog({
-                show: true,
-                title: 'Booked!',
-                message: 'Your bathroom session is locked in.',
-                type: 'success'
-            })
+            setDialog({ show: true, title: 'Booked! 🎉', message: 'Your bathroom session is locked in.', type: 'success' })
         }
         setLoading(false)
     }
 
+    const setNow = () => {
+        const n = new Date()
+        setTime(`${String(n.getHours()).padStart(2, '0')}:${String(n.getMinutes()).padStart(2, '0')}`)
+    }
+
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content glass-card slide-up" onClick={e => e.stopPropagation()}>
-                <div className="modal-header">
-                    <div className="modal-title-wrapper">
-                        <div className="modal-icon-bg">
-                            <CalendarCheck size={20} className="text-accent" />
+        <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-label="Book a slot">
+            <div className="modal-sheet glass-card-hi" onClick={e => e.stopPropagation()}>
+                {/* Handle bar (mobile swipe hint) */}
+                <div className="modal-handle" aria-hidden="true" />
+
+                {/* Header */}
+                <div className="modal-head">
+                    <div className="modal-head-left">
+                        <div className="modal-icon-bg" aria-hidden="true">
+                            <CalendarCheck size={20} />
                         </div>
                         <div>
-                            <h2>Book Slot</h2>
-                            <p className="modal-subtitle">Schedule for {activeTab}</p>
+                            <h2 className="modal-title">Book Slot</h2>
+                            <p className="modal-sub">Scheduling for <strong>{activeTab}</strong></p>
                         </div>
                     </div>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className="modal-close" onClick={onClose} aria-label="Close">
                         <X size={20} />
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="modal-form">
+                {/* Form */}
+                <form onSubmit={handleSubmit} noValidate>
+                    {/* Time */}
                     <div className="input-group">
-                        <label className="input-label">What time?</label>
-                        <div className="time-input-wrapper">
-                            <div className="input-with-icon">
-                                <Clock size={18} className="field-icon" />
+                        <label className="input-label" htmlFor="bm-time">What time?</label>
+                        <div className="bm-time-row">
+                            <div className="bm-time-wrap">
+                                <Clock size={17} className="bm-field-icon" aria-hidden="true" />
                                 <input
+                                    id="bm-time"
                                     type="time"
-                                    className="input-field pl-10"
+                                    className="input-field bm-time-input"
                                     value={time}
                                     onChange={e => setTime(e.target.value)}
                                     required
@@ -441,20 +584,16 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
                                 <button
                                     type="button"
                                     className="btn btn-secondary now-btn"
-                                    onClick={() => {
-                                        const now = new Date();
-                                        const hours = String(now.getHours()).padStart(2, '0');
-                                        const minutes = String(now.getMinutes()).padStart(2, '0');
-                                        setTime(`${hours}:${minutes}`);
-                                    }}
+                                    onClick={setNow}
                                 >
-                                    <Sparkles size={14} />
+                                    <Sparkles size={15} />
                                     <span>Now</span>
                                 </button>
                             )}
                         </div>
                     </div>
 
+                    {/* Duration */}
                     <div className="input-group">
                         <label className="input-label">How long?</label>
                         <div className="chip-grid">
@@ -462,213 +601,327 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
                                 <button
                                     key={d}
                                     type="button"
-                                    className={`duration-chip ${duration === d ? 'active' : ''}`}
+                                    className={`chip ${duration === d ? 'chip--active' : ''}`}
                                     onClick={() => setDuration(d)}
                                 >
-                                    <span className="duration-value">{d}</span>
-                                    <span className="duration-unit">min</span>
+                                    <span className="chip-val">{d}</span>
+                                    <span className="chip-unit">min</span>
                                 </button>
                             ))}
                         </div>
                     </div>
 
-                    {error && <div className="error-box fade-in">{error}</div>}
+                    {/* Error */}
+                    {error && (
+                        <div className="modal-error fade-in" role="alert">
+                            <AlertCircle size={15} style={{ flexShrink: 0 }} />
+                            <span>{error}</span>
+                        </div>
+                    )}
 
-                    <div className="modal-footer">
-                        <button type="submit" className="btn btn-primary submit-btn" disabled={loading || !time}>
-                            {loading ? 'Booking...' : 'Confirm Reservation'}
-                        </button>
-                    </div>
+                    {/* Submit */}
+                    <button
+                        type="submit"
+                        className="btn btn-primary modal-submit"
+                        disabled={loading || !time}
+                    >
+                        {loading
+                            ? <><span className="auth-spinner" /> Booking…</>
+                            : 'Confirm Reservation'
+                        }
+                    </button>
                 </form>
             </div>
+
             <style>{`
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.4);
-          backdrop-filter: blur(4px);
-          -webkit-backdrop-filter: blur(4px);
-          display: flex;
-          align-items: flex-end;
-          padding: 20px;
-          padding-bottom: calc(20px + env(safe-area-inset-bottom));
-          z-index: 100;
-        }
-        .modal-content {
-          width: 100%;
-          max-width: 460px;
-          margin: 0 auto;
-          padding: 24px;
-          border-radius: 24px 24px 0 0;
-          border-bottom: none;
-        }
-        @media (min-width: 500px) {
-          .modal-overlay { align-items: center; }
-          .modal-content { border-radius: 24px; border-bottom: 1px solid var(--glass-border); }
-        }
-        .modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 24px;
-        }
-        .modal-title-wrapper {
-          display: flex;
-          gap: 16px;
-          align-items: center;
-        }
-        .modal-icon-bg {
-          width: 44px;
-          height: 44px;
-          background: rgba(56, 189, 248, 0.1);
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .modal-content h2 { margin-bottom: 0; font-size: 1.5rem; }
-        .modal-subtitle { color: var(--text-secondary); font-size: 0.875rem; }
-        .close-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 4px; }
-        .input-with-icon { position: relative; flex: 1; min-width: 0; display: flex; }
-        .field-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); pointer-events: none; z-index: 1; }
-        .pl-10 { padding-left: 40px !important; width: 100%; height: 100%; }
-        .chip-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .duration-chip {
-          padding: 12px 8px;
-          border-radius: 14px;
-          border: 1px solid var(--glass-border);
-          background: var(--bg-secondary);
-          color: var(--text-secondary);
-          cursor: pointer;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          transition: all 0.2s;
-        }
-        .duration-chip.active {
-          background: var(--accent-primary);
-          color: white;
-          border-color: var(--accent-primary);
-          box-shadow: 0 4px 12px rgba(56, 189, 248, 0.3);
-          transform: translateY(-2px);
-        }
-        .duration-value { font-size: 1.125rem; font-weight: 700; line-height: 1; }
-        .duration-unit { font-size: 0.75rem; opacity: 0.8; }
-        .error-box { 
-          padding: 12px; 
-          background: rgba(239, 68, 68, 0.1); 
-          border: 1px solid var(--error); 
-          border-radius: 12px; 
-          color: var(--error); 
-          font-size: 0.875rem; 
-          margin-bottom: 20px;
-        }
-        .modal-footer { margin-top: 32px; }
-        .submit-btn { width: 100%; padding: 16px; border-radius: 16px; font-size: 1.125rem; }
-        @keyframes slideUp {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
-        .slide-up { animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
-        .text-accent { color: var(--accent-primary); }
-        .time-input-wrapper { 
-          display: flex; 
-          gap: 10px; 
-          align-items: stretch;
-          width: 100%;
-        }
-        .now-btn { 
-          flex-shrink: 0;
-          white-space: nowrap;
-          padding: 0 16px; 
-          font-size: 0.875rem;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all 0.2s ease;
-        }
-        .now-btn:active {
-          transform: scale(0.95);
-          background: rgba(255, 255, 255, 0.1);
-        }
-        @media (max-width: 360px) {
-          .time-input-wrapper { gap: 6px; }
-          .now-btn { padding: 0 10px; font-size: 0.75rem; gap: 4px; }
-        }
-      `}</style>
+                /* ── Overlay ──────────────────────────── */
+                .modal-overlay {
+                    position: fixed;
+                    inset: 0;
+                    background: rgba(0,0,0,0.5);
+                    backdrop-filter: blur(6px);
+                    -webkit-backdrop-filter: blur(6px);
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: center;
+                    padding: 0 0 env(safe-area-inset-bottom);
+                    z-index: 100;
+                }
+                @media (min-height: 600px) and (min-width: 480px) {
+                    .modal-overlay {
+                        align-items: center;
+                        padding: 20px;
+                        padding-bottom: max(20px, env(safe-area-inset-bottom));
+                    }
+                    .modal-sheet {
+                        border-radius: 24px !important;
+                        max-height: 90dvh;
+                    }
+                }
+
+                /* ── Sheet ────────────────────────────── */
+                .modal-sheet {
+                    width: 100%;
+                    max-width: 480px;
+                    padding: 12px 20px 24px;
+                    border-radius: 28px 28px 0 0;
+                    border-bottom: none;
+                    max-height: 95dvh;
+                    overflow-y: auto;
+                    -webkit-overflow-scrolling: touch;
+                }
+
+                /* ── Handle ───────────────────────────── */
+                .modal-handle {
+                    width: 40px;
+                    height: 4px;
+                    border-radius: 2px;
+                    background: rgba(255,255,255,0.2);
+                    margin: 0 auto 16px;
+                }
+                @media (min-width: 480px) { .modal-handle { display: none; } }
+
+                /* ── Header ───────────────────────────── */
+                .modal-head {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    gap: 12px;
+                    margin-bottom: 24px;
+                }
+                .modal-head-left {
+                    display: flex;
+                    align-items: center;
+                    gap: 14px;
+                }
+                .modal-icon-bg {
+                    width: 46px;
+                    height: 46px;
+                    border-radius: 14px;
+                    background: linear-gradient(135deg, rgba(56,189,248,0.18), rgba(129,140,248,0.18));
+                    border: 1px solid rgba(56,189,248,0.2);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--accent-primary);
+                    flex-shrink: 0;
+                }
+                .modal-title {
+                    font-size: 1.375rem;
+                    font-weight: 700;
+                    line-height: 1;
+                    margin-bottom: 3px;
+                }
+                .modal-sub {
+                    font-size: 0.8375rem;
+                    color: var(--text-secondary);
+                }
+                .modal-close {
+                    width: 44px;
+                    height: 44px;
+                    border-radius: 12px;
+                    background: var(--bg-surface);
+                    border: 1px solid var(--glass-border);
+                    color: var(--text-secondary);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    flex-shrink: 0;
+                    transition: background var(--t-base) ease;
+                }
+                .modal-close:active { background: rgba(255,255,255,0.1); }
+
+                /* ── Time row ────────────────────────── */
+                .bm-time-row {
+                    display: flex;
+                    gap: 10px;
+                    align-items: stretch;
+                }
+                .bm-time-wrap {
+                    flex: 1;
+                    position: relative;
+                    display: flex;
+                    align-items: center;
+                }
+                .bm-field-icon {
+                    position: absolute;
+                    left: 13px;
+                    color: var(--text-muted);
+                    pointer-events: none;
+                    z-index: 1;
+                }
+                .bm-time-input {
+                    padding-left: 40px !important;
+                    min-height: 52px;
+                    color-scheme: dark;
+                }
+
+                /* ── Now button ──────────────────────── */
+                .now-btn {
+                    flex-shrink: 0;
+                    min-height: 52px;
+                    padding: 0 18px;
+                    border-radius: 12px;
+                    font-size: 0.9rem;
+                    gap: 6px;
+                }
+
+                /* ── Chips ───────────────────────────── */
+                .chip-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 9px;
+                }
+                .chip {
+                    min-height: 58px;
+                    padding: 10px 6px;
+                    border-radius: 14px;
+                    border: 1px solid var(--glass-border);
+                    background: var(--bg-surface);
+                    color: var(--text-secondary);
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 2px;
+                    font-family: inherit;
+                    transition: all var(--t-base) ease;
+                    user-select: none;
+                    -webkit-user-select: none;
+                }
+                .chip:active { transform: scale(0.95); }
+                .chip--active {
+                    background: var(--accent-grad);
+                    color: #fff;
+                    border-color: transparent;
+                    box-shadow: 0 4px 14px rgba(56,189,248,0.30);
+                    transform: translateY(-2px);
+                }
+                .chip-val {
+                    font-size: 1.125rem;
+                    font-weight: 700;
+                    line-height: 1;
+                }
+                .chip-unit {
+                    font-size: 0.6875rem;
+                    font-weight: 500;
+                    opacity: 0.75;
+                }
+
+                /* ── Error ───────────────────────────── */
+                .modal-error {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 8px;
+                    padding: 12px 14px;
+                    background: var(--error-bg);
+                    border: 1px solid rgba(248,113,113,0.3);
+                    border-radius: 12px;
+                    color: var(--error);
+                    font-size: 0.875rem;
+                    margin-bottom: 16px;
+                    line-height: 1.4;
+                }
+
+                /* ── Submit ──────────────────────────── */
+                .modal-submit {
+                    width: 100%;
+                    min-height: 54px;
+                    border-radius: 16px;
+                    font-size: 1.0625rem;
+                    margin-top: 24px;
+                }
+
+                .auth-spinner {
+                    display: inline-block;
+                    width: 16px;
+                    height: 16px;
+                    border-radius: 50%;
+                    border: 2px solid rgba(255,255,255,0.35);
+                    border-top-color: #fff;
+                    animation: spin 0.7s linear infinite;
+                    flex-shrink: 0;
+                }
+            `}</style>
         </div>
     )
 }
+
+/* ─────────────────────────────────────────────────────────────
+   CUSTOM DIALOG
+───────────────────────────────────────────────────────────── */
 function CustomDialog({ title, message, type, onConfirm, onClose }) {
+    const icon = type === 'success'
+        ? <CheckCircle2 size={36} style={{ color: 'var(--success)' }} />
+        : <AlertCircle size={36} style={{ color: type === 'confirm' ? 'var(--accent-primary)' : 'var(--error)' }} />
+
     return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="dialog-content glass-card slide-up" onClick={e => e.stopPropagation()}>
-                <div className="dialog-icon-wrapper">
-                    {type === 'confirm' ? (
-                        <AlertCircle size={32} className="text-accent" />
-                    ) : type === 'success' ? (
-                        <CheckCircle2 size={32} className="text-success" />
-                    ) : (
-                        <AlertCircle size={32} className="text-error" />
-                    )}
-                </div>
-                <div className="dialog-text">
-                    <h2>{title}</h2>
-                    <p>{message}</p>
-                </div>
-                <div className="dialog-footer">
+        <div
+            className="modal-overlay dialog-overlay"
+            onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+        >
+            <div className="dialog-box glass-card-hi" onClick={e => e.stopPropagation()}>
+                <div className="dialog-icon">{icon}</div>
+                <h2 className="dialog-title">{title}</h2>
+                <p className="dialog-msg">{message}</p>
+                <div className="dialog-actions">
                     {type === 'confirm' ? (
                         <>
-                            <button className="btn btn-secondary flex-1" onClick={onClose}>No, keep it</button>
-                            <button className="btn btn-primary flex-1" onClick={() => {
-                                onConfirm();
-                                onClose();
-                            }}>Yes, remove</button>
+                            <button className="btn btn-secondary dialog-btn" onClick={onClose}>
+                                No, keep it
+                            </button>
+                            <button className="btn btn-primary dialog-btn" onClick={() => { onConfirm?.(); onClose() }}>
+                                Yes, remove
+                            </button>
                         </>
                     ) : (
-                        <button className="btn btn-primary w-full" onClick={onClose}>Got it</button>
+                        <button className="btn btn-primary dialog-btn" onClick={onClose}>Got it</button>
                     )}
                 </div>
             </div>
+
             <style>{`
-                .dialog-content {
-                    width: 100%;
-                    max-width: 320px;
-                    margin: 0 auto;
-                    padding: 32px 24px;
-                    text-align: center;
-                    border-radius: 28px;
+                .dialog-overlay {
+                    align-items: center !important;
+                    padding: 24px !important;
+                    padding-bottom: max(24px, env(safe-area-inset-bottom) + 16px) !important;
                 }
-                .dialog-icon-wrapper {
-                    margin-bottom: 20px;
+                .dialog-box {
+                    width: 100%;
+                    max-width: 340px;
+                    padding: 32px 24px 28px;
+                    border-radius: 28px;
+                    text-align: center;
+                    border: 1px solid var(--glass-border-hi);
+                }
+                .dialog-icon {
+                    margin-bottom: 16px;
                     display: flex;
                     justify-content: center;
                 }
-                .dialog-text h2 {
+                .dialog-title {
                     font-size: 1.25rem;
+                    font-weight: 700;
                     margin-bottom: 8px;
                 }
-                .dialog-text p {
-                    color: var(--text-secondary);
+                .dialog-msg {
                     font-size: 0.9375rem;
-                    margin-bottom: 32px;
+                    color: var(--text-secondary);
+                    margin-bottom: 28px;
+                    line-height: 1.5;
                 }
-                .dialog-footer {
+                .dialog-actions {
                     display: flex;
-                    gap: 12px;
+                    gap: 10px;
                 }
-                .flex-1 { flex: 1; }
-                .text-error { color: var(--error); }
-                .text-success { color: var(--success); }
-                @media (max-width: 500px) {
-                    .modal-overlay { 
-                        align-items: center; 
-                        padding-bottom: env(safe-area-inset-bottom);
-                    }
+                .dialog-btn {
+                    flex: 1;
+                    min-height: 48px;
+                    border-radius: 14px;
+                    font-size: 0.9375rem;
                 }
             `}</style>
         </div>

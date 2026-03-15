@@ -73,3 +73,12 @@
   - **Responsiveness**: Added `env(safe-area-inset-bottom)` to ensure the button is navigable on modern mobile devices.
   - **Aesthetics**: Increased `z-index` to 90 and added a spring-like micro-animation (`cubic-bezier`) for hover and active states to improve the premium feel.
   - **Files**: `src/components/Dashboard.jsx` updated.
+
+## [2026-03-15 11:43]: Comprehensive Mobile PWA UI Redesign
+- *Details*: Full visual and structural overhaul for consistent, professional look across all screen sizes and on PWA standalone mode.
+- *Tech Notes*:
+  - **`index.css`**: Replaced with a complete design system — Inter Google Font, full CSS token set (colors, spacing, radius, shadows, transitions), 44px minimum touch targets, `font-size: 16px` on all inputs to prevent iOS zoom, `.loading-screen`/`.spinner` styles added (previously missing), and `.glass-card-hi` variant for modals.
+  - **`App.css`**: Removed all Vite boilerplate (`#root { max-width: 1280px }`) that was interfering with the layout.
+  - **`Auth.jsx`**: Added ambient radial glow blobs, icon-ring brand mark with Bath icon, proper `safe-area-inset` top/bottom padding, inline spinner replacing `Loader2`, and `id`/`htmlFor` on inputs for accessibility.
+  - **`Dashboard.jsx`**: Initials avatar in header; reservation cards show start→bar→end time; FAB uses `max(28px, env(safe-area-inset-bottom) + 20px)` for all phones; BookingModal is a bottom-sheet on mobile and centered card on desktop with swipe handle; duration chips use gradient active state; all error messages include an icon; CustomDialog always centered.
+
