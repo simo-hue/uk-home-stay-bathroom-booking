@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../lib/supabase'
 import {
     Calendar,
@@ -852,78 +853,152 @@ function BookingModal({ activeTab, onClose, onSuccess, setDialog, userId, existi
    CUSTOM DIALOG
 ───────────────────────────────────────────────────────────── */
 function CustomDialog({ title, message, type, onConfirm, onClose }) {
-    const icon = type === 'success'
-        ? <CheckCircle2 size={36} style={{ color: 'var(--success)' }} />
-        : <AlertCircle size={36} style={{ color: type === 'confirm' ? 'var(--accent-primary)' : 'var(--error)' }} />
+    const isSuccess = type === 'success'
+    const isConfirm = type === 'confirm'
 
-    return (
+    const iconEl = isSuccess
+        ? <CheckCircle2 size={32} strokeWidth={1.8} />
+        : isConfirm
+            ? <Trash2 size={32} strokeWidth={1.8} />
+            : <AlertCircle size={32} strokeWidth={1.8} />
+
+    const iconColor = isSuccess ? 'var(--success)' : isConfirm ? 'var(--error)' : 'var(--error)'
+    const iconBg = isSuccess ? 'rgba(52,211,153,0.12)' : isConfirm ? 'rgba(248,113,113,0.12)' : 'rgba(248,113,113,0.12)'
+    const iconBorder = isSuccess ? 'rgba(52,211,153,0.25)' : 'rgba(248,113,113,0.25)'
+
+    return createPortal(
         <div
-            className="modal-overlay dialog-overlay"
+            className="cdialog-overlay"
             onClick={onClose}
             role="dialog"
             aria-modal="true"
+            aria-label={title}
         >
-            <div className="dialog-box glass-card-hi" onClick={e => e.stopPropagation()}>
-                <div className="dialog-icon">{icon}</div>
-                <h2 className="dialog-title">{title}</h2>
-                <p className="dialog-msg">{message}</p>
-                <div className="dialog-actions">
-                    {type === 'confirm' ? (
+            <div className="cdialog-box" onClick={e => e.stopPropagation()}>
+                {/* Icon */}
+                <div
+                    className="cdialog-icon-ring"
+                    style={{ color: iconColor, background: iconBg, border: `1px solid ${iconBorder}` }}
+                >
+                    {iconEl}
+                </div>
+
+                {/* Text */}
+                <h2 className="cdialog-title">{title}</h2>
+                <p className="cdialog-msg">{message}</p>
+
+                {/* Actions */}
+                <div className="cdialog-actions">
+                    {isConfirm ? (
                         <>
-                            <button className="btn btn-secondary dialog-btn" onClick={onClose}>
+                            <button className="btn btn-secondary cdialog-btn" onClick={onClose}>
                                 No, keep it
                             </button>
-                            <button className="btn btn-primary dialog-btn" onClick={() => { onConfirm?.(); onClose() }}>
+                            <button
+                                className="btn cdialog-btn cdialog-btn--danger"
+                                onClick={() => { onConfirm?.(); onClose() }}
+                            >
                                 Yes, remove
                             </button>
                         </>
                     ) : (
-                        <button className="btn btn-primary dialog-btn" onClick={onClose}>Got it</button>
+                        <button className="btn btn-primary cdialog-btn" onClick={onClose}>
+                            Got it
+                        </button>
                     )}
                 </div>
             </div>
 
             <style>{`
-                .dialog-overlay {
-                    align-items: center !important;
-                    padding: 24px !important;
-                    padding-bottom: max(24px, env(safe-area-inset-bottom) + 16px) !important;
+                /* ── Portal overlay — always full-screen ─── */
+                .cdialog-overlay {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    padding: 24px;
+                    padding-bottom: max(24px, env(safe-area-inset-bottom) + 16px);
+                    background: rgba(0, 0, 0, 0.55);
+                    backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
+                    animation: cdOverlayIn 0.2s ease both;
                 }
-                .dialog-box {
+                @keyframes cdOverlayIn {
+                    from { opacity: 0; }
+                    to   { opacity: 1; }
+                }
+
+                /* ── Card ───────────────────────────────── */
+                .cdialog-box {
                     width: 100%;
-                    max-width: 340px;
-                    padding: 32px 24px 28px;
+                    max-width: 320px;
+                    padding: 36px 24px 28px;
                     border-radius: 28px;
                     text-align: center;
-                    border: 1px solid var(--glass-border-hi);
+                    background: rgba(18, 28, 48, 0.92);
+                    border: 1px solid rgba(255,255,255,0.12);
+                    box-shadow: 0 24px 64px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+                    backdrop-filter: blur(20px);
+                    -webkit-backdrop-filter: blur(20px);
+                    animation: cdBoxIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
                 }
-                .dialog-icon {
-                    margin-bottom: 16px;
+                @keyframes cdBoxIn {
+                    from { opacity: 0; transform: scale(0.85) translateY(16px); }
+                    to   { opacity: 1; transform: scale(1)   translateY(0);     }
+                }
+
+                /* ── Icon ring ──────────────────────────── */
+                .cdialog-icon-ring {
+                    width: 72px;
+                    height: 72px;
+                    border-radius: 22px;
                     display: flex;
+                    align-items: center;
                     justify-content: center;
+                    margin: 0 auto 20px;
                 }
-                .dialog-title {
-                    font-size: 1.25rem;
-                    font-weight: 700;
+
+                /* ── Text ───────────────────────────────── */
+                .cdialog-title {
+                    font-size: 1.3125rem;
+                    font-weight: 800;
+                    letter-spacing: -0.3px;
                     margin-bottom: 8px;
+                    color: var(--text-primary);
                 }
-                .dialog-msg {
+                .cdialog-msg {
                     font-size: 0.9375rem;
                     color: var(--text-secondary);
+                    line-height: 1.55;
                     margin-bottom: 28px;
-                    line-height: 1.5;
                 }
-                .dialog-actions {
+
+                /* ── Actions ────────────────────────────── */
+                .cdialog-actions {
                     display: flex;
                     gap: 10px;
                 }
-                .dialog-btn {
+                .cdialog-btn {
                     flex: 1;
-                    min-height: 48px;
+                    min-height: 50px;
                     border-radius: 14px;
                     font-size: 0.9375rem;
+                    font-weight: 600;
+                }
+                .cdialog-btn--danger {
+                    background: linear-gradient(135deg, #f87171, #ef4444);
+                    color: #fff;
+                    border: none;
+                    box-shadow: 0 4px 14px rgba(239, 68, 68, 0.35);
+                }
+                .cdialog-btn--danger:active {
+                    transform: scale(0.96);
+                    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.2);
                 }
             `}</style>
-        </div>
+        </div>,
+        document.body
     )
 }
