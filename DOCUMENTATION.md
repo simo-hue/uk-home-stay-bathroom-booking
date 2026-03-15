@@ -82,6 +82,13 @@
   - **`Auth.jsx`**: Added ambient radial glow blobs, icon-ring brand mark with Bath icon, proper `safe-area-inset` top/bottom padding, inline spinner replacing `Loader2`, and `id`/`htmlFor` on inputs for accessibility.
   - **`Dashboard.jsx`**: Initials avatar in header; reservation cards show start→bar→end time; FAB uses `max(28px, env(safe-area-inset-bottom) + 20px)` for all phones; BookingModal is a bottom-sheet on mobile and centered card on desktop with swipe handle; duration chips use gradient active state; all error messages include an icon; CustomDialog always centered.
 
+## [2026-03-15 17:25]: Sign Up UI Added alongside Login
+- *Details*: Re-enabled the Sign Up flow by adding a sign-in / sign-up toggle to `Auth.jsx`. Users can now create new accounts directly in the app without needing admin intervention.
+- *Tech Notes*:
+  - **`Auth.jsx`**: Added `mode` state (`'signin'` | `'signup'`). Sign-up calls `supabase.auth.signUp()` passing `display_name` and auto-derived `username` in `options.data`. On success a green confirmation banner is shown and view resets to sign-in. Animated tab bar switches between modes. Extra "Your name" field (with slide-in animation) appears only in sign-up mode. Password hint shown for new accounts. Footer switch link also provided.
+  - **Schema**: No SQL changes required — the existing `handle_new_user` trigger already auto-creates a `profiles` row on new auth user creation.
+  - **No breaking changes** to the existing sign-in flow.
+
 ## [2026-03-15 12:49]: Supabase Booking Cleanup Job
 - *Details*: Created a scheduled database job to automatically delete reservations that took place more than 3 days ago, to keep the database clear.
 - *Tech Notes*:
