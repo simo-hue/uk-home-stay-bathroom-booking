@@ -67,9 +67,9 @@ export function Auth() {
     <div className="auth-view fade-in">
       {/* Ambient blobs */}
       <div className="auth-blob auth-blob-1" />
-      <div className="auth-blob auth-blob-2" />
+      <div className={`auth-blob auth-blob-2 ${isSignUp ? 'auth-blob-2--signup' : ''}`} />
 
-      <div className="auth-content">
+      <div className="auth-content" data-mode={mode}>
         {/* Logo / Brand */}
         <div className="auth-brand">
           <div className="auth-icon-ring">
@@ -84,22 +84,29 @@ export function Auth() {
           <button
             role="tab"
             aria-selected={!isSignUp}
-            className={`auth-tab ${!isSignUp ? 'auth-tab--active' : ''}`}
+            className={`auth-tab auth-tab--login ${!isSignUp ? 'auth-tab--active' : ''}`}
             onClick={() => switchMode('signin')}
             type="button"
           >
-            Sign In
+            🔑 Log In
           </button>
           <button
             role="tab"
             aria-selected={isSignUp}
-            className={`auth-tab ${isSignUp ? 'auth-tab--active' : ''}`}
+            className={`auth-tab auth-tab--signup ${isSignUp ? 'auth-tab--active' : ''}`}
             onClick={() => switchMode('signup')}
             type="button"
           >
-            Sign Up
+            ✨ Sign Up
           </button>
         </div>
+
+        {/* Mode description */}
+        <p className="auth-mode-desc">
+          {isSignUp
+            ? 'Create a new account to start booking.'
+            : 'Welcome back — log in to your account.'}
+        </p>
 
         {/* Card */}
         <form className="auth-card glass-card-hi" onSubmit={handleAuth} noValidate>
@@ -185,16 +192,16 @@ export function Auth() {
             type="submit"
           >
             {loading
-              ? <><span className="auth-spinner" aria-hidden="true" /> {isSignUp ? 'Creating account…' : 'Signing in…'}</>
-              : isSignUp ? 'Create Account' : 'Sign In'
+              ? <><span className="auth-spinner" aria-hidden="true" /> {isSignUp ? 'Creating account…' : 'Logging in…'}</>
+              : isSignUp ? '✨ Create Account' : '🔑 Log In'
             }
           </button>
 
           {/* Footer switch link */}
           <p className="auth-footer-link">
             {isSignUp
-              ? <>Already have an account?{' '}<button type="button" className="auth-link" onClick={() => switchMode('signin')}>Sign in</button></>
-              : <>New here?{' '}<button type="button" className="auth-link" onClick={() => switchMode('signup')}>Create an account</button></>
+              ? <>Already have an account?{' '}<button type="button" className="auth-link auth-link--login" onClick={() => switchMode('signin')}>Log in here</button></>
+              : <>No account yet?{' '}<button type="button" className="auth-link auth-link--signup" onClick={() => switchMode('signup')}>Sign up — it's free</button></>
             }
           </p>
         </form>
@@ -231,6 +238,10 @@ export function Auth() {
             width: 280px; height: 280px;
             background: radial-gradient(circle, rgba(129,140,248,0.14) 0%, transparent 70%);
             bottom: -60px; left: -60px;
+            transition: background 0.4s ease;
+        }
+        .auth-blob-2--signup {
+            background: radial-gradient(circle, rgba(167,139,250,0.20) 0%, transparent 70%);
         }
 
         /* ── Content container ─────────────────────── */
@@ -261,6 +272,12 @@ export function Auth() {
             justify-content: center;
             color: var(--accent-primary);
             box-shadow: 0 0 32px rgba(56,189,248,0.2);
+            transition: box-shadow 0.35s ease, background 0.35s ease;
+        }
+        [data-mode="signup"] .auth-icon-ring {
+            background: linear-gradient(135deg, rgba(167,139,250,0.22), rgba(196,181,253,0.15));
+            box-shadow: 0 0 32px rgba(167,139,250,0.28);
+            color: #c084fc;
         }
         .auth-title {
             font-size: 2.25rem;
@@ -286,31 +303,51 @@ export function Auth() {
             border-radius: 14px;
             padding: 4px;
             gap: 4px;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
         }
         .auth-tab {
             flex: 1;
             padding: 10px 0;
             border-radius: 10px;
-            border: none;
+            border: 1px solid transparent;
             background: transparent;
             color: var(--text-secondary);
             font-size: 0.9rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: all 0.22s ease;
             font-family: inherit;
+            letter-spacing: 0.01em;
         }
         .auth-tab:hover:not(.auth-tab--active) {
             background: rgba(255,255,255,0.06);
             color: var(--text-primary);
         }
-        .auth-tab--active {
-            background: linear-gradient(135deg, rgba(56,189,248,0.25), rgba(129,140,248,0.25));
-            color: #fff;
-            font-weight: 600;
-            box-shadow: 0 2px 12px rgba(56,189,248,0.15);
-            border: 1px solid rgba(56,189,248,0.2);
+        /* Log In active — cyan */
+        .auth-tab--login.auth-tab--active {
+            background: linear-gradient(135deg, rgba(56,189,248,0.30), rgba(14,165,233,0.20));
+            color: #7dd3fc;
+            font-weight: 700;
+            border-color: rgba(56,189,248,0.30);
+            box-shadow: 0 2px 14px rgba(56,189,248,0.18);
+        }
+        /* Sign Up active — purple */
+        .auth-tab--signup.auth-tab--active {
+            background: linear-gradient(135deg, rgba(167,139,250,0.30), rgba(196,181,253,0.20));
+            color: #c084fc;
+            font-weight: 700;
+            border-color: rgba(167,139,250,0.30);
+            box-shadow: 0 2px 14px rgba(167,139,250,0.18);
+        }
+
+        /* ── Mode description ──────────────────────── */
+        .auth-mode-desc {
+            text-align: center;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            margin: 0 0 14px;
+            min-height: 1.2em;
+            transition: opacity 0.2s;
         }
 
         /* ── Card ──────────────────────────────────── */
@@ -400,6 +437,34 @@ export function Auth() {
             background: none;
             border: none;
             color: var(--accent-primary);
+            font-size: inherit;
+            font-family: inherit;
+            cursor: pointer;
+            padding: 0;
+            font-weight: 500;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+            transition: opacity 0.15s;
+        }
+        .auth-link:hover { opacity: 0.8; }
+
+        /* ── Submit button — mode colours ─────────── */
+        [data-mode="signin"] .auth-submit {
+            background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+        }
+        [data-mode="signup"] .auth-submit {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+        }
+        [data-mode="signup"] .auth-submit:hover:not(:disabled) {
+            background: linear-gradient(135deg, #6d28d9, #c084fc);
+        }
+
+        /* ── Footer links — colour per mode ────────── */
+        .auth-link--login  { color: #38bdf8; }
+        .auth-link--signup { color: #a78bfa; }
+        .auth-link {
+            background: none;
+            border: none;
             font-size: inherit;
             font-family: inherit;
             cursor: pointer;
