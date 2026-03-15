@@ -82,3 +82,11 @@
   - **`Auth.jsx`**: Added ambient radial glow blobs, icon-ring brand mark with Bath icon, proper `safe-area-inset` top/bottom padding, inline spinner replacing `Loader2`, and `id`/`htmlFor` on inputs for accessibility.
   - **`Dashboard.jsx`**: Initials avatar in header; reservation cards show start→bar→end time; FAB uses `max(28px, env(safe-area-inset-bottom) + 20px)` for all phones; BookingModal is a bottom-sheet on mobile and centered card on desktop with swipe handle; duration chips use gradient active state; all error messages include an icon; CustomDialog always centered.
 
+## [2026-03-15 12:49]: Supabase Booking Cleanup Job
+- *Details*: Created a scheduled database job to automatically delete reservations that took place more than 3 days ago, to keep the database clear.
+- *Tech Notes*:
+  - **Database**: Supabase (PostgreSQL).
+  - **Extension**: `pg_cron` enabled.
+  - **Job**: `cleanup_old_reservations` scheduled to run daily at midnight (`0 0 * * *`).
+  - **Query**: `delete from public.reservations where start_time < (now() - interval '3 days')`.
+  - **Files**: `supabase_cleanup_cron.sql` created for manual replication in the SQL editor.
