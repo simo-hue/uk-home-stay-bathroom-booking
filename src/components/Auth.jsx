@@ -37,6 +37,7 @@ export function Auth() {
           email,
           password,
           options: {
+            emailRedirectTo: 'https://luisfernarndo1.github.io/uk/',
             data: {
               display_name: displayName.trim() || email.split('@')[0],
               username: email.split('@')[0],
