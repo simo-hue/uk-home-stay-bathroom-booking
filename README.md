@@ -1,11 +1,11 @@
-# 🚿 Bathroom Booking
+# 🚿 Bathroom / Shower Booking
 
 [![Live App](https://img.shields.io/badge/🌐_Live_App-Visit-38bdf8?style=for-the-badge)](https://luisfernarndo1.github.io/uk/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 [![Built with Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)](https://vitejs.dev/)
 [![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com/)
 
-> **A real-time shared bathroom scheduler for housemates — no more clash at 7:55 AM.**
+> **A real-time shared bathroom scheduler for housemates — One SHOWER a DAY .**
 
 ---
 
