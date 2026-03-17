@@ -1,6 +1,6 @@
-# 🚿 Bathroom Booking — User Guide
+# 🚿 Bathroom / Shower Booking — User Guide
 
-This app lets every housemate book the shared bathroom in advance so nobody clashes in the morning.
+This app lets every housemate book the shared bathroom in advance so nobody clashes in the morning. Remember that ONLY ONE SHOWER per day is allowed.
 
 ---
 
@@ -10,7 +10,7 @@ Open this link on your phone:
 
 🔗 **[https://luisfernarndo1.github.io/uk/](https://luisfernarndo1.github.io/uk/)**
 
-No download needed — it works directly in your browser, but even better you can save it on your home screen
+No download needed — it works directly in your browser, but even better you can save it on your home screen ( Read step 3 )
 
 ---
 
